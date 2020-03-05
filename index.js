@@ -9,6 +9,6 @@ app.use(bodyParser.json());
 //entender quando passar parametros via url
 app.use(bodyParser.urlencoded({extended: false}));
  
-require('./controllers/authController')(app);
+require('./src/controllers/authController')(app);
 
 app.listen(3000);
