@@ -1,4 +1,6 @@
+//pegar conexão do banco de dados 
 const mongoose = require('../database');
+//serve para criptografia
 const bcrypt = require('bcryptjs')
 
 const UserSchema = new mongoose.Schema({
