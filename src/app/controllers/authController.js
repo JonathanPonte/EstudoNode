@@ -1,10 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('.jsonwebtoken.DELETE')
+const jwt = require('jsonwebtoken')
 const authConfig = require('../../config/auth');
 const User = require('../models/user');
 const router = express.Router();
 const crypto = require('crypto');
+const mailer = require('../../modules/mailer');
 
 function generateToken(params = {}) {
    return jwt.sign(params, authConfig.secret, {
@@ -27,7 +28,7 @@ router.post('/register', async (req, res) => {
 
       user.password = undefined;
 
-      return res.send({
+      return res.status(201).send({
          user,
          token: generateToken({ id: user.id })
       });
@@ -43,10 +44,6 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
 
    const { email, password } = req.body;
-
-   
-
-   console.log(req);
 
    const user = await User.findOne({ email }).select('+password');
 
@@ -68,6 +65,9 @@ router.post('/login', async (req, res) => {
 
 router.post('/forgot_password', async (req, res) => {
    const { email } = req.body;
+
+   console.log(email);
+
    try {
       const user = await User.findOne({ email });
 
@@ -86,11 +86,55 @@ router.post('/forgot_password', async (req, res) => {
          }
       });
 
-      console.log(token, now);
+      mailer.sendMail({
+         to: email,
+         from: 'jonathancardoso2@edu.unifor.br',
+         template: 'auth/forgot_password',
+         context: { token }
+      }, (err) => {
+         Console.log(OLAAAAAAAA)
+         if(err)
+            return res.status(400).send({ error: 'Cannot send forgot password email!' });
 
+
+         return res.status(200).send({ resp: 'Sent with success' });
+      });
+
+      return res.status(200).send({ resp: 'Sent with success' });
    } catch (err) {
-      console.log(err.message);
+      console.log(err);
       res.status(400).send({ error: 'Erro on forgot password, try again' });
+   }
+
+});
+
+
+router.post('/reset_password', async (req, res) => {
+   const { email, token, password } = req.body
+
+   try {
+      const user = await User.findOne({ email })
+         .select('+passwordResetToken passwordResetExpires');
+
+      if(!user)
+         return res.status(400).send({ error: 'User not found' });
+         
+      if( token !== user.passwordResetToken)
+         return res.status(400).send({ error: 'Token invalid' });
+         
+      const now = new Date();
+
+
+      if(now > user.passwordResetExpires)
+         return res.status(400).send({ error: 'Token expired, genereted new one' })
+
+      user.password = password;
+
+      await user.save();
+
+      return res.send();
+   } catch (error) {
+      return res.status(400).send({ error: 'Cannot reset password, try again' });
    }
 
 });
